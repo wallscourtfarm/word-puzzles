@@ -20,7 +20,7 @@ st.set_page_config(
     layout="centered",
 )
 
-LOGO_PATH = Path("assets/wfa_logo.png")
+LOGO_PATH = Path("assets/wfa_logo.webp")
 
 YEAR_COLOURS = {
     "Y1": "#e57d24", "Y2": "#2bae62", "Y3": "#c0157b",
@@ -49,7 +49,7 @@ if LOGO_PATH.exists():
     logo_b64 = _b64_img(LOGO_PATH)
     st.markdown(
         f'<div style="display:flex;align-items:center;gap:18px;margin-bottom:6px;">'
-        f'<img src="data:image/png;base64,{logo_b64}" style="height:60px;width:auto;">'
+        f'<img src="data:image/webp;base64,{logo_b64}" style="height:60px;width:auto;">'
         f'<span style="font-size:1.75rem;font-weight:700;color:#1798d3;">'
         f'WFA Word Puzzle Generator</span></div>',
         unsafe_allow_html=True,
