@@ -2,15 +2,13 @@
 WFA Word Puzzle Generator — Streamlit app
 Puzzle types: Word Search · Nine Letters · Word Ladder · Word Scramble · Cloze Passage
 """
-import sys
-import os
 import re
-import base64
-from pathlib import Path
-
-sys.path.insert(0, os.path.dirname(__file__))
 
 import streamlit as st
+
+from wfa_shared import YEAR_COLOURS, WFA_BLUE, year_colour
+from wfa_shared.logo import logo_html
+from wfa_shared.streamlit_css import inject_wfa_css
 
 from puzzles.word_search import generate_word_search
 from puzzles.nine_letters import generate_nine_letters
@@ -32,55 +30,11 @@ st.set_page_config(
     layout="centered",
 )
 
-LOGO_PATH = Path("assets/wfa_logo.webp")
-YEAR_COLOURS = {
-    "Y1": "#e57d24", "Y2": "#2bae62", "Y3": "#c0157b",
-    "Y4": "#1798d3", "Y5": "#e57d24", "Y6": "#2bae62",
-}
+inject_wfa_css(buttons=True, inputs=True, download=True)
 
-st.markdown("""
-<style>
-div[data-testid="stMainBlockContainer"] { max-width: 860px; margin: 0 auto; }
-div[data-testid="stButton"] button {
-    background-color: #1798d3 !important; border-color: #1798d3 !important; color: #ffffff !important;
-}
-div[data-testid="stButton"] button:hover {
-    background-color: #1280b8 !important; border-color: #1280b8 !important;
-}
-div[data-testid="stDownloadButton"] > button {
-    background: #ffffff !important; border: 1.5px solid #1798d3 !important; color: #1798d3 !important;
-}
-div[data-testid="stDownloadButton"] > button:hover { background: #f0f8ff !important; }
-[data-baseweb="select"] > div { border-color: #cccccc !important; }
-[data-baseweb="select"] > div:focus-within {
-    border-color: #1798d3 !important; box-shadow: 0 0 0 3px #1798d333 !important;
-}
-[data-baseweb="input"] > div, [data-baseweb="textarea"] > div { border-color: #cccccc !important; }
-[data-baseweb="input"] > div:focus-within, [data-baseweb="textarea"] > div:focus-within {
-    border-color: #1798d3 !important; box-shadow: 0 0 0 3px #1798d333 !important;
-}
-[data-baseweb="radio"] [data-checked="true"] > div,
-[data-baseweb="checkbox"] [data-checked="true"] > div {
-    background-color: #1798d3 !important; border-color: #1798d3 !important;
-}
-div[data-testid="stProgressBar"] > div > div { background-color: #1798d3 !important; }
-button[data-baseweb="tab"][aria-selected="true"] {
-    border-bottom-color: #1798d3 !important; color: #1798d3 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(logo_html("WFA Word Puzzle Generator"), unsafe_allow_html=True)
+st.divider()
 
-if LOGO_PATH.exists():
-    logo_b64 = base64.b64encode(LOGO_PATH.read_bytes()).decode()
-    st.markdown(
-        f'<div style="display:flex;align-items:center;gap:18px;margin-bottom:6px;">'
-        f'<img src="data:image/webp;base64,{logo_b64}" style="height:60px;width:auto;">'
-        f'<span style="font-size:1.75rem;font-weight:700;color:#1798d3;">'
-        f'WFA Word Puzzle Generator</span></div>',
-        unsafe_allow_html=True,
-    )
-else:
-    st.markdown('<span style="font-size:1.75rem;font-weight:700;color:#1798d3;">WFA Word Puzzle Generator</span>', unsafe_allow_html=True)
 st.divider()
 
 
@@ -287,7 +241,7 @@ elif puzzle_type == "Cloze Passage":
 
 st.divider()
 generate = st.button("Generate puzzle", type="primary", use_container_width=True)
-colour = YEAR_COLOURS.get(year_group, "#1798d3")
+colour = year_colour(year_group)
 
 # ── Landing ───────────────────────────────────────────────────────────────────
 

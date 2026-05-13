@@ -6,24 +6,12 @@ from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import HexColor, white, black
 
+from wfa_shared.brand import YEAR_COLOURS, DEFAULT_COLOUR, year_colour
+
 PAGE_W, PAGE_H = A4
 MARGIN = 38
 HEADER_H = 50
 FOOTER_Y = 14
-
-YEAR_COLOURS = {
-    "Y1": "#e57d24",
-    "Y2": "#2bae62",
-    "Y3": "#c0157b",
-    "Y4": "#1798d3",
-    "Y5": "#e57d24",
-    "Y6": "#2bae62",
-}
-DEFAULT_COLOUR = "#1798d3"
-
-
-def year_colour(year_group: str) -> str:
-    return YEAR_COLOURS.get(year_group, DEFAULT_COLOUR)
 
 
 def hex_colour(s: str) -> HexColor:
