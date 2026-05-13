@@ -1,15 +1,15 @@
 """
-WFA Word Puzzle Generator
-Streamlit app — word search (phase 1).
-Puzzle types coming soon: Nine Letters, Word Ladder, Word Scramble, Cloze Passage.
+WFA Word Puzzle Generator — Streamlit app
+Phase 1: Word Search. Further puzzle types coming soon.
 """
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 import streamlit as st
 from puzzles.word_search import generate_word_search
 from pdf_output.word_search_pdf import render_word_search_pdf
-from utils import get_words_from_topic
+from utils import get_words_from_topic, get_clf_words
 
 st.set_page_config(
     page_title="WFA Word Puzzle Generator",
@@ -26,15 +26,21 @@ YEAR_COLOURS = {
 st.markdown("""
 <style>
 [data-testid="stSidebar"] { background: #f0f7fc; }
-.block-container { padding-top: 1.2rem; }
-.app-title { font-size: 1.6rem; font-weight: 700; color: #1798d3; margin-bottom: 0.1rem; }
-.app-sub   { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+.block-container { padding-top: 0.5rem; padding-left: 2rem; padding-right: 2rem; }
 .stDownloadButton > button { width: 100%; }
+.clf-badge {
+    background: #eef7f0;
+    border-left: 3px solid #2bae62;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    margin-top: 6px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── helpers ─────────────────────────────────────────────────────────────────
+# ── helpers ──────────────────────────────────────────────────────────────────
 
 def parse_words(text):
     if not text.strip():
@@ -43,21 +49,23 @@ def parse_words(text):
         return [w.strip() for w in text.split(",") if w.strip()]
     return [w.strip() for w in text.splitlines() if w.strip()]
 
+
 def grid_html(grid, colour):
     rows = ""
     for row in grid:
         cells = "".join(
-            f'<td style="width:28px;height:28px;text-align:center;vertical-align:middle;'
-            f'font-family:monospace;font-size:14px;font-weight:700;border:1px solid #ccc;">'
-            f'{letter}</td>'
+            '<td style="width:28px;height:28px;text-align:center;vertical-align:middle;'
+            'font-family:monospace;font-size:14px;font-weight:700;border:1px solid #ccc;">'
+            + letter + "</td>"
             for letter in row
         )
         rows += f"<tr>{cells}</tr>"
     return (
-        f'<div style="overflow-x:auto;">'
+        '<div style="overflow-x:auto;">'
         f'<table style="border-collapse:collapse;border:2px solid {colour};">'
-        f'{rows}</table></div>'
+        + rows + "</table></div>"
     )
+
 
 def word_chips(words, colour):
     chips = "".join(
@@ -68,6 +76,7 @@ def word_chips(words, colour):
     )
     return f'<div style="margin-top:6px;">{chips}</div>'
 
+
 def api_key():
     try:
         return st.secrets["ANTHROPIC_API_KEY"]
@@ -75,7 +84,7 @@ def api_key():
         return os.environ.get("ANTHROPIC_API_KEY", "")
 
 
-# ── sidebar ──────────────────────────────────────────────────────────────────
+# ── sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
     st.markdown("### 🔤 Word Puzzle Generator")
@@ -83,7 +92,7 @@ with st.sidebar:
 
     puzzle_type = st.selectbox(
         "Puzzle type",
-        options=[
+        [
             "Word Search",
             "Nine Letters (coming soon)",
             "Word Ladder (coming soon)",
@@ -112,7 +121,7 @@ with st.sidebar:
         "Difficulty",
         options=["Easy", "Medium", "Hard"],
         value="Medium",
-        help="Easy = across/down only · Hard = all 8 directions inc. diagonals",
+        help="Easy = across/down only · Hard = all 8 directions including diagonals",
     )
     grid_size = st.slider("Grid size", 8, 20, 12, help="Rows × columns")
 
@@ -120,24 +129,34 @@ with st.sidebar:
     generate = st.button("▶ Generate puzzle", type="primary", use_container_width=True)
 
 
-# ── main ─────────────────────────────────────────────────────────────────────
+# ── main area ─────────────────────────────────────────────────────────────────
 
-st.markdown('<div class="app-title">WFA Word Puzzle Generator</div>', unsafe_allow_html=True)
-st.markdown('<div class="app-sub">Wallscourt Farm Academy · print-ready puzzles from any topic</div>', unsafe_allow_html=True)
+st.title("WFA Word Puzzle Generator")
+st.caption("Wallscourt Farm Academy · print-ready puzzles from any topic")
+st.divider()
 
 colour = YEAR_COLOURS.get(year_group, "#1798d3")
 
 if not generate:
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown(f"#### ✅ Word Search")
-        st.markdown("Hidden words in a letter grid. Generates a puzzle sheet and a separate answer page — ready to print.")
+        st.markdown("#### ✅ Word Search")
+        st.markdown(
+            "Hidden words in a letter grid. Generates a puzzle sheet "
+            "and a separate answer page — ready to print."
+        )
     with col2:
         st.markdown("#### 🔜 Nine Letters")
-        st.markdown("9-letter grid. Find words of different lengths, each clued — same format as the morning display Boggle panel.")
+        st.markdown(
+            "9-letter grid. Find words of different lengths, each clued — "
+            "same format as the morning display Boggle panel."
+        )
     with col3:
         st.markdown("#### 🔜 Word Ladder")
-        st.markdown("Change one letter at a time to get from the top word to the bottom. Classic pencil-and-paper puzzle.")
+        st.markdown(
+            "Change one letter at a time to get from the top word to the bottom. "
+            "Classic pencil-and-paper puzzle."
+        )
     st.info("Set your options in the sidebar, then click **▶ Generate puzzle**.")
 
 elif "coming soon" in puzzle_type:
@@ -145,7 +164,7 @@ elif "coming soon" in puzzle_type:
     st.info(f"**{name}** is in the build queue — check back soon.")
 
 else:
-    # ── Word Search ──────────────────────────────────────────────────────────
+    # ── Word Search ───────────────────────────────────────────────────────────
     if not topic and not words_raw.strip():
         st.error("Please enter a topic or a word list.")
         st.stop()
@@ -153,16 +172,19 @@ else:
     with st.spinner("Generating…"):
         words = parse_words(words_raw)
         display_title = topic or "Custom word list"
-
         clf_words_used = []
+
         if not words:
-            from utils import get_clf_words
+            # Check CLF vocabulary first so we can report it
             clf_pre, _ = get_clf_words(topic, year_group)
             clf_words_used = [w.upper() for w in clf_pre[:8]]
 
             key = api_key()
             if not key:
-                st.error("No ANTHROPIC_API_KEY found in Streamlit secrets. Add it via Settings → Secrets.")
+                st.error(
+                    "No ANTHROPIC_API_KEY found in Streamlit secrets. "
+                    "Add it via Settings → Secrets."
+                )
                 st.stop()
             try:
                 words, display_title = get_words_from_topic(
@@ -173,14 +195,15 @@ else:
                 st.stop()
 
         if not words:
-            st.error("No words to work with — try a different topic or add words manually.")
+            st.error(
+                "No words to work with — try a different topic or add words manually."
+            )
             st.stop()
 
         grid, placed, failed, positions = generate_word_search(
             words, size=grid_size, difficulty=difficulty
         )
 
-    # Results
     title_str = f"Word Search: {display_title}"
 
     col_grid, col_info = st.columns([2, 1], gap="large")
@@ -193,15 +216,17 @@ else:
         st.markdown(f"**Find these {len(placed)} words:**")
         st.markdown(word_chips(placed, colour), unsafe_allow_html=True)
 
-        # Show CLF curriculum badge if any words came from the progression document
-        clf_in_puzzle = [w for w in clf_words_used if w in placed] if "clf_words_used" in dir() else []
+        # CLF curriculum badge
+        clf_in_puzzle = [w for w in clf_words_used if w in placed]
         if clf_in_puzzle:
-            badge_words = ", ".join(w.title() for w in sorted(clf_in_puzzle, key=str.lower)[:6])
+            badge_words = ", ".join(
+                w.title() for w in sorted(clf_in_puzzle, key=str.lower)[:8]
+            )
             st.markdown(
-                f'<div style="background:#eef7f0;border-left:3px solid #2bae62;padding:6px 10px;"
-                f'border-radius:4px;font-size:0.8rem;margin-top:6px;">'
-                f'<b style="color:#2bae62;">📚 CLF curriculum words included:</b> {badge_words}</div>',
-                unsafe_allow_html=True
+                '<div class="clf-badge">'
+                '<b style="color:#2bae62;">📚 CLF curriculum words:</b> '
+                + badge_words + "</div>",
+                unsafe_allow_html=True,
             )
 
         if failed:
