@@ -27,16 +27,51 @@ YEAR_COLOURS = {
     "Y4": "#1798d3", "Y5": "#e57d24", "Y6": "#2bae62",
 }
 
-# ── CSS — matches reading-generator.streamlit.app exactly ────────────────────
+# ── CSS — force WFA blue regardless of Streamlit Cloud theme setting ──────────
 st.markdown("""
 <style>
 div[data-testid="stMainBlockContainer"] { max-width: 860px; margin: 0 auto; }
+
+/* Primary button */
+button[data-testid="baseButton-primary"] {
+    background-color: #1798d3 !important;
+    border-color: #1798d3 !important;
+    color: #ffffff !important;
+}
+button[data-testid="baseButton-primary"]:hover {
+    background-color: #1280b8 !important;
+    border-color: #1280b8 !important;
+}
+
+/* Download buttons */
 div[data-testid="stDownloadButton"] > button {
     border: 1.5px solid #1798d3 !important;
     color: #1798d3 !important;
     background: #ffffff !important;
 }
 div[data-testid="stDownloadButton"] > button:hover { background: #f0f8ff !important; }
+
+/* Slider thumb */
+div[data-testid="stSlider"] [role="slider"] {
+    background-color: #1798d3 !important;
+    border-color: #1798d3 !important;
+}
+/* Slider value label */
+div[data-testid="stThumbValue"] { color: #1798d3 !important; }
+
+/* Slider filled track */
+div[data-testid="stSlider"] > div > div > div > div:first-child {
+    background-color: #1798d3 !important;
+}
+
+/* Radio active dot */
+div[data-testid="stRadio"] [data-baseweb="radio"] div[data-checked="true"] div {
+    background-color: #1798d3 !important;
+    border-color: #1798d3 !important;
+}
+
+/* Select slider active colour */
+div[data-testid="stSlider"] [data-testid="stTickBar"] { color: #1798d3 !important; }
 </style>
 """, unsafe_allow_html=True)
 
