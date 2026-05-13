@@ -4,6 +4,9 @@ Phase 1: Word Search. Further puzzle types coming soon.
 """
 import sys
 import os
+import base64
+from pathlib import Path
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 import streamlit as st
@@ -14,33 +17,53 @@ from utils import get_words_from_topic, get_clf_words
 st.set_page_config(
     page_title="WFA Word Puzzle Generator",
     page_icon="🔤",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    layout="centered",
 )
+
+LOGO_PATH = Path("assets/wfa_logo.png")
 
 YEAR_COLOURS = {
     "Y1": "#e57d24", "Y2": "#2bae62", "Y3": "#c0157b",
     "Y4": "#1798d3", "Y5": "#e57d24", "Y6": "#2bae62",
 }
 
+# ── CSS — matches reading-generator.streamlit.app exactly ────────────────────
 st.markdown("""
 <style>
-[data-testid="stSidebar"] { background: #f0f7fc; }
-.block-container { padding-top: 0.5rem; padding-left: 2rem; padding-right: 2rem; }
-.stDownloadButton > button { width: 100%; }
-.clf-badge {
-    background: #eef7f0;
-    border-left: 3px solid #2bae62;
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 0.82rem;
-    margin-top: 6px;
+div[data-testid="stMainBlockContainer"] { max-width: 860px; margin: 0 auto; }
+div[data-testid="stDownloadButton"] > button {
+    border: 1.5px solid #1798d3 !important;
+    color: #1798d3 !important;
+    background: #ffffff !important;
 }
+div[data-testid="stDownloadButton"] > button:hover { background: #f0f8ff !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
+# ── Header — matches reading-generator style ──────────────────────────────────
+def _b64_img(path, mime="image/png"):
+    return base64.b64encode(Path(path).read_bytes()).decode()
+
+if LOGO_PATH.exists():
+    logo_b64 = _b64_img(LOGO_PATH)
+    st.markdown(
+        f'<div style="display:flex;align-items:center;gap:18px;margin-bottom:6px;">'
+        f'<img src="data:image/png;base64,{logo_b64}" style="height:60px;width:auto;">'
+        f'<span style="font-size:1.75rem;font-weight:700;color:#1798d3;">'
+        f'WFA Word Puzzle Generator</span></div>',
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(
+        '<span style="font-size:1.75rem;font-weight:700;color:#1798d3;">'
+        'WFA Word Puzzle Generator</span>',
+        unsafe_allow_html=True,
+    )
+st.divider()
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def parse_words(text):
     if not text.strip():
@@ -84,58 +107,44 @@ def api_key():
         return os.environ.get("ANTHROPIC_API_KEY", "")
 
 
-# ── sidebar ───────────────────────────────────────────────────────────────────
+# ── Controls ──────────────────────────────────────────────────────────────────
 
-with st.sidebar:
-    st.markdown("### 🔤 Word Puzzle Generator")
-    st.markdown("---")
-
-    puzzle_type = st.selectbox(
-        "Puzzle type",
-        [
-            "Word Search",
-            "Nine Letters (coming soon)",
-            "Word Ladder (coming soon)",
-            "Word Scramble (coming soon)",
-            "Cloze Passage (coming soon)",
-        ],
-    )
-
-    st.markdown("---")
-    st.markdown("**Topic & words**")
-
-    topic = st.text_input("Topic", placeholder="e.g. Anglo-Saxons, Sound, Fractions")
-    words_raw = st.text_area(
-        "Word list (optional)",
-        placeholder="One per line, or comma-separated.\nLeave blank to generate from topic.",
-        height=130,
-    )
-    year_group = st.selectbox(
-        "Year group", ["Y1", "Y2", "Y3", "Y4", "Y5", "Y6"], index=3
-    )
-
-    st.markdown("---")
-    st.markdown("**Word search settings**")
-
-    difficulty = st.select_slider(
-        "Difficulty",
-        options=["Easy", "Medium", "Hard"],
-        value="Medium",
-        help="Easy = across/down only · Hard = all 8 directions including diagonals",
-    )
-    grid_size = st.slider("Grid size", 8, 20, 12, help="Rows × columns")
-
-    st.markdown("---")
-    generate = st.button("▶ Generate puzzle", type="primary", use_container_width=True)
-
-
-# ── main area ─────────────────────────────────────────────────────────────────
-
-st.title("WFA Word Puzzle Generator")
-st.caption("Wallscourt Farm Academy · print-ready puzzles from any topic")
+puzzle_type = st.selectbox(
+    "Puzzle type",
+    [
+        "Word Search",
+        "Nine Letters (coming soon)",
+        "Word Ladder (coming soon)",
+        "Word Scramble (coming soon)",
+        "Cloze Passage (coming soon)",
+    ],
+)
 st.divider()
 
+topic = st.text_input("Topic", placeholder="e.g. Anglo-Saxons, Sound, Fractions")
+words_raw = st.text_area(
+    "Word list (optional)",
+    placeholder="One per line, or comma-separated.\nLeave blank to generate from topic.",
+    height=100,
+)
+
+c1, c2, c3 = st.columns(3)
+year_group = c1.selectbox("Year group", ["Y1", "Y2", "Y3", "Y4", "Y5", "Y6"], index=3)
+difficulty = c2.select_slider(
+    "Difficulty",
+    options=["Easy", "Medium", "Hard"],
+    value="Medium",
+    help="Easy = across/down only · Hard = all 8 directions including diagonals",
+)
+grid_size = c3.slider("Grid size", 8, 20, 12, help="Rows × columns")
+
+st.divider()
+generate = st.button("Generate puzzle", type="primary", use_container_width=True)
+
 colour = YEAR_COLOURS.get(year_group, "#1798d3")
+
+
+# ── Landing state ─────────────────────────────────────────────────────────────
 
 if not generate:
     col1, col2, col3 = st.columns(3)
@@ -154,14 +163,12 @@ if not generate:
     with col3:
         st.markdown("#### 🔜 Word Ladder")
         st.markdown(
-            "Change one letter at a time to get from the top word to the bottom. "
-            "Classic pencil-and-paper puzzle."
+            "Change one letter at a time to get from the top word to the bottom."
         )
-    st.info("Set your options in the sidebar, then click **▶ Generate puzzle**.")
+    st.info("Enter a topic above and click **Generate puzzle**.")
 
 elif "coming soon" in puzzle_type:
-    name = puzzle_type.split("(")[0].strip()
-    st.info(f"**{name}** is in the build queue — check back soon.")
+    st.info(f"**{puzzle_type.split('(')[0].strip()}** is in the build queue — check back soon.")
 
 else:
     # ── Word Search ───────────────────────────────────────────────────────────
@@ -175,7 +182,6 @@ else:
         clf_words_used = []
 
         if not words:
-            # Check CLF vocabulary first so we can report it
             clf_pre, _ = get_clf_words(topic, year_group)
             clf_words_used = [w.upper() for w in clf_pre[:8]]
 
@@ -195,9 +201,7 @@ else:
                 st.stop()
 
         if not words:
-            st.error(
-                "No words to work with — try a different topic or add words manually."
-            )
+            st.error("No words to work with — try a different topic or add words manually.")
             st.stop()
 
         grid, placed, failed, positions = generate_word_search(
@@ -205,25 +209,26 @@ else:
         )
 
     title_str = f"Word Search: {display_title}"
+    st.markdown(f"**{title_str}**")
+    st.divider()
 
-    col_grid, col_info = st.columns([2, 1], gap="large")
+    col_grid, col_info = st.columns([3, 2], gap="large")
 
     with col_grid:
-        st.markdown(f"**{title_str}**")
         st.markdown(grid_html(grid, colour), unsafe_allow_html=True)
 
     with col_info:
         st.markdown(f"**Find these {len(placed)} words:**")
         st.markdown(word_chips(placed, colour), unsafe_allow_html=True)
 
-        # CLF curriculum badge
         clf_in_puzzle = [w for w in clf_words_used if w in placed]
         if clf_in_puzzle:
             badge_words = ", ".join(
                 w.title() for w in sorted(clf_in_puzzle, key=str.lower)[:8]
             )
             st.markdown(
-                '<div class="clf-badge">'
+                '<div style="background:#eef7f0;border-left:3px solid #2bae62;'
+                'padding:6px 10px;border-radius:4px;font-size:0.82rem;margin-top:8px;">'
                 '<b style="color:#2bae62;">📚 CLF curriculum words:</b> '
                 + badge_words + "</div>",
                 unsafe_allow_html=True,
@@ -234,7 +239,7 @@ else:
                 st.markdown(", ".join(w.title() for w in failed))
                 st.caption("Try a larger grid size, or remove very long words.")
 
-        st.markdown("---")
+        st.divider()
 
         pdf_bytes = render_word_search_pdf(
             grid=grid,
@@ -252,5 +257,4 @@ else:
             mime="application/pdf",
             use_container_width=True,
         )
-
         st.caption(f"Grid: {grid_size}×{grid_size} · {difficulty} · {year_group}")
