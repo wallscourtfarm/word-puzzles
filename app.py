@@ -162,23 +162,41 @@ def nine_letters_grid_html(letters, required, colour):
     )
 
 
-def ladder_html(path, colour, show_answers):
-    boxes = ""
+def ladder_html(path, colour, show_answers, hint_idx=None, hint_clue=None):
+    parts = ""
     for i, word in enumerate(path):
         is_end = i == 0 or i == len(path) - 1
         bg = colour if is_end else "white"
         tc = "white" if is_end else colour
         border = f"2px solid {colour}" if is_end else f"2px dashed {colour}77"
-        content = word if (is_end or show_answers) else "&nbsp;" * len(word)
-        boxes += (
+        content = word if (is_end or show_answers) else ""
+
+        has_hint = (
+            hint_idx is not None and i == hint_idx
+            and not is_end and not show_answers
+            and hint_clue
+        )
+        hint_html = (
+            f'<div style="font-size:0.72rem;color:{colour};margin-left:12px;'
+            f'font-style:italic;line-height:1.3;max-width:160px;">💡 {hint_clue}</div>'
+        ) if has_hint else ""
+
+        parts += (
+            f'<div style="display:flex;align-items:center;justify-content:center;">'
             f'<div style="width:130px;height:38px;background:{bg};color:{tc};'
             f'border:{border};border-radius:4px;display:flex;align-items:center;'
             f'justify-content:center;font-family:monospace;font-size:16px;'
-            f'font-weight:700;margin:0 auto;">{content}</div>'
+            f'font-weight:700;">{content}</div>'
+            + hint_html +
+            f'</div>'
         )
         if i < len(path) - 1:
-            boxes += f'<div style="width:3px;height:12px;background:{colour};margin:0 auto;"></div>'
-    return f'<div style="display:flex;flex-direction:column;gap:0;align-items:center;">{boxes}</div>'
+            parts += (
+                f'<div style="display:flex;justify-content:center;">'
+                f'<div style="width:3px;height:12px;background:{colour};"></div>'
+                f'</div>'
+            )
+    return f'<div style="display:flex;flex-direction:column;gap:0;">{parts}</div>'
 
 
 def scramble_table_html(items, colour):
@@ -405,7 +423,15 @@ elif puzzle_type == "Word Ladder":
 
     col_ladder, col_info = st.columns([1, 2], gap="large")
     with col_ladder:
-        st.markdown(ladder_html(puzzle["path"], colour, show_answers=False), unsafe_allow_html=True)
+        st.markdown(
+            ladder_html(
+                puzzle["path"], colour,
+                show_answers=False,
+                hint_idx=puzzle.get("hint_idx"),
+                hint_clue=puzzle.get("hint_clue"),
+            ),
+            unsafe_allow_html=True,
+        )
     with col_info:
         st.markdown(
             f"**Start:** {puzzle['start'].title()}  \n"
@@ -413,6 +439,13 @@ elif puzzle_type == "Word Ladder":
             f"**Steps:** {num_steps}  \n"
             f"**Word length:** {puzzle['word_length']} letters"
         )
+        if puzzle.get("hint_word") and puzzle.get("hint_clue"):
+            st.markdown(
+                f'<div style="background:#EEF6FB;border-left:3px solid {colour};'
+                f'padding:7px 10px;border-radius:4px;font-size:0.85rem;margin-top:8px;">'
+                f'💡 <strong>Middle-rung clue:</strong> {puzzle["hint_clue"]}</div>',
+                unsafe_allow_html=True,
+            )
         st.markdown("---")
         st.markdown("**Answer path:**")
         for i, word in enumerate(puzzle["path"]):
@@ -421,7 +454,8 @@ elif puzzle_type == "Word Ladder":
             elif i == len(puzzle["path"]) - 1:
                 st.markdown(f"↳ **{word.title()}** (end)")
             else:
-                st.markdown(f"↳ {word.title()}")
+                marker = " 💡" if i == puzzle.get("hint_idx") else ""
+                st.markdown(f"↳ {word.title()}{marker}")
 
     st.divider()
     pdf_bytes = render_word_ladder_pdf(puzzle, year_group=year_group)

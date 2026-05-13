@@ -1,6 +1,6 @@
 """
 Word Ladder PDF renderer.
-Page 1: ladder with start/end filled, intermediate rungs blank.
+Page 1: ladder with start/end filled, intermediate rungs blank, one hint clue shown.
 Page 2: complete solved ladder.
 """
 import io
@@ -14,73 +14,70 @@ from .pdf_utils import (
     draw_header, draw_footer, content_top,
 )
 
-BOX_W = 140     # box width in points
-BOX_H = 32      # box height
-GAP = 10        # vertical gap between boxes
-STILE_W = 3     # ladder stile line width
+BOX_W = 140
+BOX_H = 32
+GAP = 10
+STILE_OFFSET = 18   # horizontal distance from box edge to stile line
 
 
-def _draw_ladder(c, path: list[str], colour: str, top_y: float, show_answers: bool) -> None:
-    """Draw the word ladder centred on the page."""
+def _draw_ladder(c, path: list[str], colour: str, top_y: float, show_answers: bool,
+                 hint_idx: int = None, hint_clue: str = None) -> None:
     n = len(path)
-    total_h = n * BOX_H + (n - 1) * GAP
-    bx = (PAGE_W - BOX_W) / 2  # left x of boxes
-    stile_x_left = bx - 16
-    stile_x_right = bx + BOX_W + 16
-    start_y = top_y  # top of first box
+    bx = (PAGE_W - BOX_W) / 2
+    stile_left = bx - STILE_OFFSET
+    stile_right = bx + BOX_W + STILE_OFFSET
 
     for i, word in enumerate(path):
-        by = start_y - i * (BOX_H + GAP)  # top of this box
         is_first = i == 0
         is_last = i == n - 1
-        is_filled = is_first or is_last or show_answers
+        is_end_word = is_first or is_last
 
-        # Box fill
-        if is_first or is_last:
+        by_top = top_y - i * (BOX_H + GAP)
+        by_bot = by_top - BOX_H
+
+        # Fill
+        if is_end_word:
             c.setFillColor(hex_colour(colour))
         elif show_answers:
             c.setFillColor(HexColor("#EEF6FB"))
         else:
             c.setFillColor(white)
+        c.rect(bx, by_bot, BOX_W, BOX_H, fill=1, stroke=0)
 
-        c.rect(bx, by - BOX_H, BOX_W, BOX_H, fill=1, stroke=0)
-
-        # Box border
+        # Border
         c.setStrokeColor(hex_colour(colour))
-        c.setLineWidth(2 if (is_first or is_last) else 1)
-        if not (is_first or is_last):
-            # dashed border for blank rungs
-            c.setDash(4, 3)
-        c.rect(bx, by - BOX_H, BOX_W, BOX_H, fill=0, stroke=1)
-        c.setDash()  # reset dash
-
-        # Word text
-        if is_filled:
-            text = word
+        if is_end_word:
+            c.setLineWidth(2)
+            c.setDash()
         else:
-            # Show letter boxes as underscores
-            text = "  ".join("_" for _ in word)
+            c.setLineWidth(1)
+            c.setDash(4, 3)
+        c.rect(bx, by_bot, BOX_W, BOX_H, fill=0, stroke=1)
+        c.setDash()
 
-        fs = 16 if (is_first or is_last) else 14
-        c.setFont("Helvetica-Bold", fs)
-        c.setFillColor(white if (is_first or is_last) else hex_colour(colour))
-        tw = c.stringWidth(text, "Helvetica-Bold", fs)
-        c.drawString(bx + (BOX_W - tw) / 2, by - BOX_H + (BOX_H - fs) / 2 + 2, text)
+        # Word / blank content
+        if is_end_word or show_answers:
+            fs = 16 if is_end_word else 13
+            c.setFont("Helvetica-Bold", fs)
+            c.setFillColor(white if is_end_word else hex_colour(colour))
+            tw = c.stringWidth(word, "Helvetica-Bold", fs)
+            c.drawString(bx + (BOX_W - tw) / 2, by_bot + (BOX_H - fs) / 2 + 1, word)
 
-        # Stile connectors (not below last box)
+        # Hint clue (puzzle page only, middle rung only)
+        if (not show_answers and not is_end_word
+                and hint_idx is not None and i == hint_idx
+                and hint_clue):
+            c.setFont("Helvetica-Oblique", 8)
+            c.setFillColor(hex_colour(colour))
+            clue_text = f"Clue: {hint_clue}"
+            c.drawString(bx + BOX_W + STILE_OFFSET + 8, by_bot + BOX_H / 2 - 4, clue_text)
+
+        # Stile connectors below this box (not below last)
         if i < n - 1:
-            connector_top = by - BOX_H
-            connector_bot = connector_top - GAP
             c.setStrokeColor(hex_colour(colour))
-            c.setLineWidth(STILE_W)
-            c.line(stile_x_left, connector_top, stile_x_left, connector_bot)
-            c.line(stile_x_right, connector_top, stile_x_right, connector_bot)
-
-        # Step label on the right (puzzle page only)
-        if not show_answers and not is_first and not is_last:
-            c.setFont("Helvetica", 8)
-            c.setFillColorRGB(0.6, 0.6, 0.6)
-            c.drawString(bx + BOX_W + 24, by - BOX_H + BOX_H / 2 - 4, f"Step {i}")
+            c.setLineWidth(2.5)
+            c.line(stile_left, by_bot, stile_left, by_bot - GAP)
+            c.line(stile_right, by_bot, stile_right, by_bot - GAP)
 
 
 def render_word_ladder_pdf(puzzle: dict, year_group: str = "Y4") -> bytes:
@@ -91,24 +88,29 @@ def render_word_ladder_pdf(puzzle: dict, year_group: str = "Y4") -> bytes:
     path = puzzle["path"]
     topic = puzzle.get("topic", "")
     num_steps = puzzle["num_steps"]
+    hint_idx = puzzle.get("hint_idx")
+    hint_clue = puzzle.get("hint_clue", "")
     title = f"Word Ladder: {topic.title()}"
 
     for page in ("puzzle", "answers"):
         subtitle = (
             "Answers" if page == "answers"
-            else f"Change one letter at a time — {num_steps} step{'s' if num_steps != 1 else ''} to get there"
+            else f"Change one letter at a time — {num_steps} step{'s' if num_steps != 1 else ''}"
         )
         draw_header(c, title, subtitle, colour)
         draw_footer(c)
 
         top = content_top() - 6
-        _draw_ladder(c, path, colour, top, show_answers=(page == "answers"))
+        _draw_ladder(
+            c, path, colour, top,
+            show_answers=(page == "answers"),
+            hint_idx=hint_idx if page == "puzzle" else None,
+            hint_clue=hint_clue,
+        )
 
-        # Instruction at bottom of puzzle page
         if page == "puzzle":
             n = len(path)
-            total_h = n * BOX_H + (n - 1) * GAP
-            bottom_y = top - total_h - 20
+            bottom_y = top - n * (BOX_H + GAP) - 16
             c.setFont("Helvetica-Oblique", 9)
             c.setFillColorRGB(0.45, 0.45, 0.45)
             c.drawCentredString(
