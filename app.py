@@ -154,7 +154,12 @@ else:
         words = parse_words(words_raw)
         display_title = topic or "Custom word list"
 
+        clf_words_used = []
         if not words:
+            from utils import get_clf_words
+            clf_pre, _ = get_clf_words(topic, year_group)
+            clf_words_used = [w.upper() for w in clf_pre[:8]]
+
             key = api_key()
             if not key:
                 st.error("No ANTHROPIC_API_KEY found in Streamlit secrets. Add it via Settings → Secrets.")
@@ -187,6 +192,17 @@ else:
     with col_info:
         st.markdown(f"**Find these {len(placed)} words:**")
         st.markdown(word_chips(placed, colour), unsafe_allow_html=True)
+
+        # Show CLF curriculum badge if any words came from the progression document
+        clf_in_puzzle = [w for w in clf_words_used if w in placed] if "clf_words_used" in dir() else []
+        if clf_in_puzzle:
+            badge_words = ", ".join(w.title() for w in sorted(clf_in_puzzle, key=str.lower)[:6])
+            st.markdown(
+                f'<div style="background:#eef7f0;border-left:3px solid #2bae62;padding:6px 10px;"
+                f'border-radius:4px;font-size:0.8rem;margin-top:6px;">'
+                f'<b style="color:#2bae62;">📚 CLF curriculum words included:</b> {badge_words}</div>',
+                unsafe_allow_html=True
+            )
 
         if failed:
             with st.expander(f"⚠ {len(failed)} word(s) couldn't fit"):
