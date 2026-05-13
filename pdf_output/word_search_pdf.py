@@ -7,41 +7,15 @@ import io
 import math
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import HexColor, white, black, Color
+from reportlab.lib.colors import HexColor, black, Color
 
-PAGE_W, PAGE_H = A4
-MARGIN = 38
+from .pdf_utils import (
+    PAGE_W, PAGE_H, MARGIN, HEADER_H, FOOTER_Y,
+    YEAR_COLOURS, DEFAULT_COLOUR,
+    hex_colour as _hex,
+    draw_header, draw_footer, content_top,
+)
 
-YEAR_COLOURS = {
-    "Y1": "#e57d24", "Y2": "#2bae62", "Y3": "#c0157b",
-    "Y4": "#1798d3", "Y5": "#e57d24", "Y6": "#2bae62",
-}
-DEFAULT_COLOUR = "#1798d3"
-
-
-def _hex(s):
-    return HexColor(s)
-
-
-def _header(c, title, subtitle, colour):
-    h = 50
-    c.setFillColor(_hex(colour))
-    c.rect(0, PAGE_H - h, PAGE_W, h, fill=1, stroke=0)
-    c.setFillColor(white)
-    c.setFont("Helvetica-Bold", 17)
-    c.drawString(MARGIN, PAGE_H - h + 20, title)
-    c.setFont("Helvetica", 9)
-    c.drawString(MARGIN, PAGE_H - h + 7, subtitle)
-    label = "Wallscourt Farm Academy"
-    c.setFont("Helvetica-Bold", 8)
-    lw = c.stringWidth(label, "Helvetica-Bold", 8)
-    c.drawString(PAGE_W - MARGIN - lw, PAGE_H - h + 28, label)
-
-
-def _footer(c):
-    c.setFont("Helvetica", 7)
-    c.setFillColorRGB(0.55, 0.55, 0.55)
-    c.drawCentredString(PAGE_W / 2, 14, "wallscourtfarm.github.io  ·  Word Puzzle Generator")
 
 
 def _draw_grid(c, grid, cell, gx, gy_top, colour, highlights=None):
@@ -149,18 +123,17 @@ def render_word_search_pdf(grid, words, word_positions, title, year_group="Y4"):
 
     for page in ("puzzle", "answers"):
         subtitle = "Answers" if page == "answers" else "Can you find all the words?"
-        _header(c, title, subtitle, colour)
-        _footer(c)
+        draw_header(c, title, subtitle, colour)
+        draw_footer(c)
 
-        header_h  = 50
-        top       = PAGE_H - header_h - MARGIN
+        top       = content_top()
 
         n = len(grid)
         usable_w  = PAGE_W - 2 * MARGIN
 
         # Fit the grid: use up to 68% of the remaining vertical space
         max_cell_w = usable_w / n
-        max_cell_h = (PAGE_H - header_h - MARGIN * 3) * 0.68 / n
+        max_cell_h = (content_bottom() - top) * 0.68 / n
         cell = min(max_cell_w, max_cell_h, 33)
 
         grid_w = n * cell
