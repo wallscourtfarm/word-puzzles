@@ -27,12 +27,13 @@ YEAR_COLOURS = {
     "Y4": "#1798d3", "Y5": "#e57d24", "Y6": "#2bae62",
 }
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
+# ── CSS — WFA blue theme, overrides all Streamlit red ─────────────────────────
+# Reused across all WFA Streamlit apps. Primary = #1798d3.
 st.markdown("""
 <style>
 div[data-testid="stMainBlockContainer"] { max-width: 860px; margin: 0 auto; }
 
-/* All buttons in stButton wrapper — catches primary regardless of testid */
+/* ── Buttons ── */
 div[data-testid="stButton"] button {
     background-color: #1798d3 !important;
     border-color: #1798d3 !important;
@@ -42,14 +43,50 @@ div[data-testid="stButton"] button:hover {
     background-color: #1280b8 !important;
     border-color: #1280b8 !important;
 }
-
-/* Download buttons — override back to outline style */
 div[data-testid="stDownloadButton"] > button {
     background: #ffffff !important;
     border: 1.5px solid #1798d3 !important;
     color: #1798d3 !important;
 }
 div[data-testid="stDownloadButton"] > button:hover { background: #f0f8ff !important; }
+
+/* ── Selectbox / multiselect focus border ── */
+[data-baseweb="select"] > div {
+    border-color: #cccccc !important;
+}
+[data-baseweb="select"] > div:focus-within {
+    border-color: #1798d3 !important;
+    box-shadow: 0 0 0 3px #1798d333 !important;
+}
+
+/* ── Text input / textarea focus border ── */
+[data-baseweb="input"] > div,
+[data-baseweb="textarea"] > div {
+    border-color: #cccccc !important;
+}
+[data-baseweb="input"] > div:focus-within,
+[data-baseweb="textarea"] > div:focus-within {
+    border-color: #1798d3 !important;
+    box-shadow: 0 0 0 3px #1798d333 !important;
+}
+
+/* ── Radio / checkbox active state ── */
+[data-baseweb="radio"] [data-checked="true"] > div,
+[data-baseweb="checkbox"] [data-checked="true"] > div {
+    background-color: #1798d3 !important;
+    border-color: #1798d3 !important;
+}
+
+/* ── Progress / spinner ── */
+div[data-testid="stProgressBar"] > div > div {
+    background-color: #1798d3 !important;
+}
+
+/* ── Tabs active underline ── */
+button[data-baseweb="tab"][aria-selected="true"] {
+    border-bottom-color: #1798d3 !important;
+    color: #1798d3 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
