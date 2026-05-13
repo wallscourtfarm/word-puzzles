@@ -27,51 +27,29 @@ YEAR_COLOURS = {
     "Y4": "#1798d3", "Y5": "#e57d24", "Y6": "#2bae62",
 }
 
-# ── CSS — force WFA blue regardless of Streamlit Cloud theme setting ──────────
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 div[data-testid="stMainBlockContainer"] { max-width: 860px; margin: 0 auto; }
 
-/* Primary button */
-button[data-testid="baseButton-primary"] {
+/* All buttons in stButton wrapper — catches primary regardless of testid */
+div[data-testid="stButton"] button {
     background-color: #1798d3 !important;
     border-color: #1798d3 !important;
     color: #ffffff !important;
 }
-button[data-testid="baseButton-primary"]:hover {
+div[data-testid="stButton"] button:hover {
     background-color: #1280b8 !important;
     border-color: #1280b8 !important;
 }
 
-/* Download buttons */
+/* Download buttons — override back to outline style */
 div[data-testid="stDownloadButton"] > button {
+    background: #ffffff !important;
     border: 1.5px solid #1798d3 !important;
     color: #1798d3 !important;
-    background: #ffffff !important;
 }
 div[data-testid="stDownloadButton"] > button:hover { background: #f0f8ff !important; }
-
-/* Slider thumb */
-div[data-testid="stSlider"] [role="slider"] {
-    background-color: #1798d3 !important;
-    border-color: #1798d3 !important;
-}
-/* Slider value label */
-div[data-testid="stThumbValue"] { color: #1798d3 !important; }
-
-/* Slider filled track */
-div[data-testid="stSlider"] > div > div > div > div:first-child {
-    background-color: #1798d3 !important;
-}
-
-/* Radio active dot */
-div[data-testid="stRadio"] [data-baseweb="radio"] div[data-checked="true"] div {
-    background-color: #1798d3 !important;
-    border-color: #1798d3 !important;
-}
-
-/* Select slider active colour */
-div[data-testid="stSlider"] [data-testid="stTickBar"] { color: #1798d3 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -165,13 +143,18 @@ words_raw = st.text_area(
 
 c1, c2, c3 = st.columns(3)
 year_group = c1.selectbox("Year group", ["Y1", "Y2", "Y3", "Y4", "Y5", "Y6"], index=3)
-difficulty = c2.select_slider(
+difficulty = c2.selectbox(
     "Difficulty",
     options=["Easy", "Medium", "Hard"],
-    value="Medium",
+    index=1,
     help="Easy = across/down only · Hard = all 8 directions including diagonals",
 )
-grid_size = c3.slider("Grid size", 8, 20, 12, help="Rows × columns")
+grid_size = c3.selectbox(
+    "Grid size",
+    options=list(range(8, 21)),
+    index=4,
+    help="Rows × columns",
+)
 
 st.divider()
 generate = st.button("Generate puzzle", type="primary", use_container_width=True)
